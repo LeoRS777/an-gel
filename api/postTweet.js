@@ -4,20 +4,24 @@ export default async function handler(req, res) {
   // Define allowed origins
   const allowedOrigins = [
     "https://angel-world.webflow.io",
-    "https://angelpurgatory.com", // Fixed typo in domain
+    "https://angelpurgatory.com", // Add other allowed origins here
   ];
 
   const origin = req.headers.origin;
 
-  // Set CORS headers
+  // Handle CORS
   if (allowedOrigins.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
   } else {
-    res.setHeader("Access-Control-Allow-Origin", "*"); // Use '*' if no specific origin matches
+    res.setHeader("Access-Control-Allow-Origin", "null");
   }
 
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization"
+  );
+  res.setHeader("Access-Control-Max-Age", "86400"); // Cache preflight response for 1 day
 
   // Handle preflight requests (OPTIONS method)
   if (req.method === "OPTIONS") {
@@ -26,7 +30,6 @@ export default async function handler(req, res) {
 
   // Handle POST requests
   if (req.method === "POST") {
-    // Get the confession (tweet text) from the request body
     const tweetText = req.body.confession; // Ensure Webflow sends 'confession' in the request body
     const bearerToken =
       "AAAAAAAAAAAAAAAAAAAAAAHsxAEAAAAACfJ2foBMSwXO3LLkWMhaLAIc%2Bww%"; // Replace with your Bearer token from X API
@@ -54,4 +57,3 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 }
-
