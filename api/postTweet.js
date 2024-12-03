@@ -1,59 +1,53 @@
-import axios from "axios";
-
-export default async function handler(req, res) {
-  // Define allowed origins
+const corsMiddleware = (req, res, next) => {
   const allowedOrigins = [
     "https://angel-world.webflow.io",
-    "https://angelpurgatory.com", // Add other allowed origins here
+    "https://angelpurgatory.com",
   ];
-
   const origin = req.headers.origin;
 
-  // Handle CORS
   if (allowedOrigins.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
-  } else {
-    res.setHeader("Access-Control-Allow-Origin", "null");
   }
-
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization"
-  );
-  res.setHeader("Access-Control-Max-Age", "86400"); // Cache preflight response for 1 day
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Max-Age", "86400");
 
-  // Handle preflight requests (OPTIONS method)
   if (req.method === "OPTIONS") {
-    return res.status(200).end(); // End the request for preflight
+    return res.status(200).end();
   }
 
-  // Handle POST requests
-  if (req.method === "POST") {
-    const tweetText = req.body.confession; // Ensure Webflow sends 'confession' in the request body
-    const bearerToken =
-      "AAAAAAAAAAAAAAAAAAAAAAHsxAEAAAAACfJ2foBMSwXO3LLkWMhaLAIc%2Bww%"; // Replace with your Bearer token from X API
+  next(); // Continue to the actual handler
+};
 
-    const url = "https://api.twitter.com/2/tweets";
-    const headers = {
-      Authorization: `Bearer ${bearerToken}`,
-      "Content-Type": "application/json",
-    };
+export default async function handler(req, res) {
+  corsMiddleware(req, res, () => {
+    // Main logic here
+    if (req.method === "POST") {
+      const tweetText = req.body.confession;
+      const bearerToken =
+        "AAAAAAAAAAAAAAAAAAAAAAHsxAEAAAAACfJ2foBMSwXO3LLkWMhaLAIc%2Bww%";
 
-    const payload = { text: tweetText };
+      const url = "https://api.twitter.com/2/tweets";
+      const headers = {
+        Authorization: `Bearer ${bearerToken}`,
+        "Content-Type": "application/json",
+      };
 
-    try {
-      // Send the tweet
-      const response = await axios.post(url, payload, { headers });
-      return res.status(200).json({ success: true, data: response.data });
-    } catch (error) {
-      console.error("Error posting tweet:", error.response?.data || error.message);
-      return res
-        .status(500)
-        .json({ error: error.response?.data || error.message });
+      const payload = { text: tweetText };
+
+      axios
+        .post(url, payload, { headers })
+        .then((response) =>
+          res.status(200).json({ success: true, data: response.data })
+        )
+        .catch((error) =>
+          res
+            .status(500)
+            .json({ error: error.response?.data || error.message })
+        );
+    } else {
+      res.status(405).json({ error: "Method Not Allowed" });
     }
-  } else {
-    // Handle non-POST requests
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
+  });
 }
+
