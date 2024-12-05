@@ -1,6 +1,7 @@
-import axios from "axios";
+import axios from "axios/dist/node/axios.cjs";
 
-const corsMiddleware = (req, res, next) => {
+export default async function handler(req, res) {
+  // CORS Headers
   const allowedOrigins = [
     "https://angel-world.webflow.io",
     "https://angelpurgatory.com",
@@ -14,42 +15,33 @@ const corsMiddleware = (req, res, next) => {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   res.setHeader("Access-Control-Max-Age", "86400");
 
+  // Handle OPTIONS request
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
 
-  next(); // Continue to the actual handler
-};
-
-export default async function handler(req, res) {
-  corsMiddleware(req, res, () => {
-    // Main logic here
-    if (req.method === "POST") {
+  // Main logic
+  if (req.method === "POST") {
+    try {
       const tweetText = req.body.confession;
-      const bearerToken =
-        "AAAAAAAAAAAAAAAAAAAAAAHsxAEAAAAACfJ2foBMSwXO3LLkWMhaLAIc%2Bww%";
-
+      const bearerToken = "AAAAAAAAAAAAAAAAAAAAAAHsxAEAAAAACfJ2foBMSwXO3LLkWMhaLAIc%2Bww%";
       const url = "https://api.twitter.com/2/tweets";
       const headers = {
         Authorization: `Bearer ${bearerToken}`,
         "Content-Type": "application/json",
       };
-
       const payload = { text: tweetText };
 
-      axios
-        .post(url, payload, { headers })
-        .then((response) =>
-          res.status(200).json({ success: true, data: response.data })
-        )
-        .catch((error) =>
-          res
-            .status(500)
-            .json({ error: error.response?.data || error.message })
-        );
-    } else {
-      res.status(405).json({ error: "Method Not Allowed" });
+      const response = await axios.post(url, payload, { headers });
+      return res.status(200).json({ success: true, data: response.data });
+    } catch (error) {
+      console.error('Tweet posting error:', error);
+      return res.status(500).json({ 
+        error: error.response?.data || error.message 
+      });
     }
-  });
+  } else {
+    res.status(405).json({ error: "Method Not Allowed" });
+  }
 }
 
