@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     try {
       const tweetText = req.body.confession;
       const bearerToken = "AAAAAAAAAAAAAAAAAAAAAAHsxAEAAAAACfJ2foBMSwXO3LLkWMhaLAIc%2Bww%";
-      const url = "https://api.twitter.com/2/tweets";
+      const url = "https://api.x.com/2/tweets";  // Instead of twitter.com
       const headers = {
         Authorization: `Bearer ${bearerToken}`,
         "Content-Type": "application/json",
