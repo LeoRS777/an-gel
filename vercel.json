@@ -3,12 +3,28 @@
     {
       "src": "api/postTweet.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "api/twitter-auth.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/callback.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/api/postTweet",
       "dest": "api/postTweet.js"
+    },
+    {
+      "src": "/api/twitter-auth",
+      "dest": "api/twitter-auth.js"
+    },
+    {
+      "src": "/api/callback",
+      "dest": "api/callback.js"
     }
   ]
 }
