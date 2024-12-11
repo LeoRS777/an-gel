@@ -1,7 +1,25 @@
 import { TwitterApi } from 'twitter-api-v2';
 
+// Helper function to securely store tokens (replace with your actual storage method)
+async function storeTokens(tokens) {
+  // Implement secure token storage:
+  // - Use a database like Vercel KV, Supabase, or Firestore
+  // - Or use Vercel Environment Variables API
+  // Example using environment variables (not recommended for production)
+  process.env.TWITTER_ACCESS_TOKEN = tokens.accessToken;
+  process.env.TWITTER_REFRESH_TOKEN = tokens.refreshToken;
+}
+
+// Helper function to retrieve stored tokens
+async function retrieveStoredTokens() {
+  return {
+    accessToken: process.env.TWITTER_ACCESS_TOKEN,
+    refreshToken: process.env.TWITTER_REFRESH_TOKEN
+  };
+}
+
 export default async function handler(req, res) {
-  // CORS Headers
+  // CORS Configuration
   const allowedOrigins = [
     "https://angel-world.webflow.io",
     "https://angelpurgatory.com",
@@ -19,41 +37,37 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // Main logic
   if (req.method === "POST") {
     try {
       const tweetText = req.body.confession;
       
-      // Validate input
       if (!tweetText || tweetText.trim().length === 0) {
         return res.status(400).json({ error: "Confession text cannot be empty" });
       }
 
       const { 
-        TWITTER_ACCESS_TOKEN, 
-        TWITTER_REFRESH_TOKEN, 
         TWITTER_CLIENT_ID, 
         TWITTER_CLIENT_SECRET 
       } = process.env;
-      
-      // If no access token, redirect to OAuth flow
-      if (!TWITTER_ACCESS_TOKEN) {
+
+      // Retrieve stored tokens
+      const storedTokens = await retrieveStoredTokens();
+
+      if (!storedTokens.accessToken) {
         return res.status(401).json({
           error: 'No valid Twitter authentication',
           redirectUrl: '/api/twitter-auth'
         });
       }
 
-      // Initialize Twitter client
       const client = new TwitterApi({
         clientId: TWITTER_CLIENT_ID,
         clientSecret: TWITTER_CLIENT_SECRET,
-        accessToken: TWITTER_ACCESS_TOKEN,
-        refreshToken: TWITTER_REFRESH_TOKEN,
+        accessToken: storedTokens.accessToken,
+        refreshToken: storedTokens.refreshToken,
       });
 
       try {
-        // Attempt to post the tweet
         const tweet = await client.v2.tweet(tweetText);
         
         return res.status(200).json({ 
@@ -61,18 +75,17 @@ export default async function handler(req, res) {
           data: tweet 
         });
       } catch (apiError) {
-        // Check if error is due to token expiration
+        // Enhanced token refresh logic
         if (apiError.data?.title === 'Unauthorized' || apiError.statusCode === 401) {
           try {
-            // Attempt to refresh the token
             const refreshResponse = await client.refreshOAuth2Token();
             
-            // Update environment variables with new tokens
-            // Note: In a real-world scenario, you'd want a more secure way to update these
-            process.env.TWITTER_ACCESS_TOKEN = refreshResponse.accessToken;
-            process.env.TWITTER_REFRESH_TOKEN = refreshResponse.refreshToken;
+            // Securely store new tokens
+            await storeTokens({
+              accessToken: refreshResponse.accessToken,
+              refreshToken: refreshResponse.refreshToken
+            });
 
-            // Retry the tweet with the new token
             const refreshedClient = new TwitterApi({
               clientId: TWITTER_CLIENT_ID,
               clientSecret: TWITTER_CLIENT_SECRET,
@@ -88,7 +101,6 @@ export default async function handler(req, res) {
               message: 'Tweet posted after token refresh'
             });
           } catch (refreshError) {
-            // If token refresh fails, redirect to OAuth flow
             console.error('Token refresh failed:', refreshError);
             return res.status(401).json({
               error: 'Twitter authentication failed to refresh',
@@ -97,7 +109,6 @@ export default async function handler(req, res) {
           }
         }
 
-        // Log and return other types of errors
         console.error('Twitter API Error:', apiError);
         return res.status(500).json({ 
           error: 'Failed to post to Twitter',
