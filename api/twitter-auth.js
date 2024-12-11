@@ -6,17 +6,15 @@ export default async function handler(req, res) {
     clientSecret: process.env.TWITTER_CLIENT_SECRET,
   });
 
-  // Generate the authorization URL
+  // Generate the authorization URL with the correct callback URL
   const { url, codeVerifier, state } = client.generateOAuth2AuthLink(
-    'https://angelpurgatory.com/callback', 
+    'https://an-gel.vercel.app/callback', 
     { 
       scope: ['tweet.write', 'users.read'] 
     }
   );
 
-  // Store codeVerifier and state in a secure, temporary storage 
-  // (you might use a database or session storage)
-  // For this example, we'll use environment variables as a placeholder
+  // Store codeVerifier and state in environment variables
   process.env.TWITTER_CODE_VERIFIER = codeVerifier;
   process.env.TWITTER_AUTH_STATE = state;
 
