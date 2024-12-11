@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     process.env.TWITTER_REFRESH_TOKEN = refreshToken;
 
     // Redirect to success page on your frontend
-    res.redirect('https://angelpurgatory.com/success');
+    //res.redirect('https://angelpurgatory.com/success');
   } catch (error) {
     console.error('OAuth 2.0 Error:', error);
     res.status(500).json({ error: 'Authentication failed' });
