@@ -1,4 +1,3 @@
-import axios from "axios/dist/node/axios.cjs";
 import { TwitterApi } from 'twitter-api-v2';
 
 export default async function handler(req, res) {
@@ -31,28 +30,32 @@ export default async function handler(req, res) {
       }
 
       // Check if we have a valid access token
-      const accessToken = process.env.TWITTER_ACCESS_TOKEN;
+      const { 
+        TWITTER_ACCESS_TOKEN, 
+        TWITTER_REFRESH_TOKEN, 
+        TWITTER_CLIENT_ID, 
+        TWITTER_CLIENT_SECRET 
+      } = process.env;
       
       // If no access token, redirect to OAuth flow
-      if (!accessToken) {
+      if (!TWITTER_ACCESS_TOKEN) {
         return res.status(401).json({
           error: 'No valid Twitter authentication',
           redirectUrl: '/api/twitter-auth'
         });
       }
 
-      // Initialize Twitter client
+      // Initialize Twitter client with full credentials
       const client = new TwitterApi({
-        clientId: process.env.TWITTER_CLIENT_ID,
-        clientSecret: process.env.TWITTER_CLIENT_SECRET,
+        clientId: TWITTER_CLIENT_ID,
+        clientSecret: TWITTER_CLIENT_SECRET,
+        accessToken: TWITTER_ACCESS_TOKEN,
+        refreshToken: TWITTER_REFRESH_TOKEN,
       });
 
       try {
-        // Create a user client with the access token
-        const userClient = new TwitterApi(accessToken);
-
         // Attempt to post the tweet
-        const tweet = await userClient.v2.tweet(tweetText);
+        const tweet = await client.v2.tweet(tweetText);
         
         return res.status(200).json({ 
           success: true, 
@@ -66,7 +69,6 @@ export default async function handler(req, res) {
             redirectUrl: '/api/twitter-auth'
           });
         }
-
         console.error('Twitter API Error:', apiError);
         return res.status(500).json({ 
           error: 'Failed to post to Twitter',
