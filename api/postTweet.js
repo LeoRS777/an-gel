@@ -29,13 +29,6 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "Confession text cannot be empty" });
       }
 
-      // Detailed logging of environment variables
-      console.log('Twitter Client ID present:', !!process.env.TWITTER_CLIENT_ID);
-      console.log('Twitter Client Secret present:', !!process.env.TWITTER_CLIENT_SECRET);
-      console.log('Twitter Access Token present:', !!process.env.TWITTER_ACCESS_TOKEN);
-      console.log('Twitter Refresh Token present:', !!process.env.TWITTER_REFRESH_TOKEN);
-
-      // Check if we have a valid access token
       const { 
         TWITTER_ACCESS_TOKEN, 
         TWITTER_REFRESH_TOKEN, 
@@ -51,7 +44,7 @@ export default async function handler(req, res) {
         });
       }
 
-      // Initialize Twitter client with full credentials
+      // Initialize Twitter client
       const client = new TwitterApi({
         clientId: TWITTER_CLIENT_ID,
         clientSecret: TWITTER_CLIENT_SECRET,
@@ -68,16 +61,43 @@ export default async function handler(req, res) {
           data: tweet 
         });
       } catch (apiError) {
-        // Detailed error logging
-        console.error('Full Twitter API Error:', JSON.stringify(apiError, null, 2));
-
-        // Check if error is due to token expiration or invalid token
+        // Check if error is due to token expiration
         if (apiError.data?.title === 'Unauthorized' || apiError.statusCode === 401) {
-          return res.status(401).json({
-            error: 'Twitter authentication expired',
-            redirectUrl: '/api/twitter-auth'
-          });
+          try {
+            // Attempt to refresh the token
+            const refreshResponse = await client.refreshOAuth2Token();
+            
+            // Update environment variables with new tokens
+            // Note: In a real-world scenario, you'd want a more secure way to update these
+            process.env.TWITTER_ACCESS_TOKEN = refreshResponse.accessToken;
+            process.env.TWITTER_REFRESH_TOKEN = refreshResponse.refreshToken;
+
+            // Retry the tweet with the new token
+            const refreshedClient = new TwitterApi({
+              clientId: TWITTER_CLIENT_ID,
+              clientSecret: TWITTER_CLIENT_SECRET,
+              accessToken: refreshResponse.accessToken,
+              refreshToken: refreshResponse.refreshToken,
+            });
+
+            const retryTweet = await refreshedClient.v2.tweet(tweetText);
+
+            return res.status(200).json({ 
+              success: true, 
+              data: retryTweet,
+              message: 'Tweet posted after token refresh'
+            });
+          } catch (refreshError) {
+            // If token refresh fails, redirect to OAuth flow
+            console.error('Token refresh failed:', refreshError);
+            return res.status(401).json({
+              error: 'Twitter authentication failed to refresh',
+              redirectUrl: '/api/twitter-auth'
+            });
+          }
         }
+
+        // Log and return other types of errors
         console.error('Twitter API Error:', apiError);
         return res.status(500).json({ 
           error: 'Failed to post to Twitter',
