@@ -29,6 +29,12 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "Confession text cannot be empty" });
       }
 
+      // Detailed logging of environment variables
+      console.log('Twitter Client ID present:', !!process.env.TWITTER_CLIENT_ID);
+      console.log('Twitter Client Secret present:', !!process.env.TWITTER_CLIENT_SECRET);
+      console.log('Twitter Access Token present:', !!process.env.TWITTER_ACCESS_TOKEN);
+      console.log('Twitter Refresh Token present:', !!process.env.TWITTER_REFRESH_TOKEN);
+
       // Check if we have a valid access token
       const { 
         TWITTER_ACCESS_TOKEN, 
@@ -62,6 +68,9 @@ export default async function handler(req, res) {
           data: tweet 
         });
       } catch (apiError) {
+        // Detailed error logging
+        console.error('Full Twitter API Error:', JSON.stringify(apiError, null, 2));
+
         // Check if error is due to token expiration or invalid token
         if (apiError.data?.title === 'Unauthorized' || apiError.statusCode === 401) {
           return res.status(401).json({
