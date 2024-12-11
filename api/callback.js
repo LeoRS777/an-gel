@@ -22,15 +22,14 @@ export default async function handler(req, res) {
     } = await client.loginWithOAuth2({
       code,
       codeVerifier: process.env.TWITTER_CODE_VERIFIER,
-      redirectUri: 'https://angelpurgatory.com/callback',
+      redirectUri: 'https://an-gel.vercel.app/callback',
     });
 
-    // Store these tokens securely (recommend using a database)
-    // For this example, we'll use environment variables (NOT recommended in production)
+    // Store these tokens securely in environment variables
     process.env.TWITTER_ACCESS_TOKEN = accessToken;
     process.env.TWITTER_REFRESH_TOKEN = refreshToken;
 
-    // Redirect or respond as needed
+    // Redirect to success page on your frontend
     res.redirect('https://angelpurgatory.com/success');
   } catch (error) {
     console.error('OAuth 2.0 Error:', error);
