@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   if (state !== process.env.TWITTER_AUTH_STATE) {
     return res.status(400).json({ error: 'Invalid state' });
   }
-
+//leskibidi
   const client = new TwitterApi({
     clientId: process.env.TWITTER_CLIENT_ID,
     clientSecret: process.env.TWITTER_CLIENT_SECRET,
